@@ -3,7 +3,24 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include<unistd.h>
+#include<thread>
+
 using namespace std;
+
+void handleClient(int client_fd) {
+    cout << "Client connected successfully!\n";
+    char buffer[1024] = {0};
+    int bytes_received = recv(client_fd, buffer,sizeof(buffer) - 1, 0);
+    if (bytes_received > 0) {
+        cout << "Client says: " << buffer << '\n';
+    }
+
+    string response = "Hello this is Distributed File System, you are connected";
+    send(client_fd, response.c_str(), response.size(), 0);
+    cout << "Response sent to client!\n";
+
+    close(client_fd);
+}
 
 int main() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,26 +50,19 @@ int main() {
 
     cout << "Server listening on port 8080...\n";
 
-    int client_fd = accept(server_fd, nullptr, nullptr);
+    
+    while (true) {
+        int client_fd = accept(server_fd, nullptr, nullptr);
 
-    if (client_fd == -1) {
-        cerr << "Accept failed: " << strerror(errno) << '\n';
-        close(server_fd);
-        return 1;
+        if (client_fd == -1) {
+            cerr << "Accept failed: " << strerror(errno) << '\n';
+            continue;
+        }
+
+        cout << "Client connected successfully!\n";
+
+        thread t(handleClient, client_fd);
+        t.detach();
     }
-
-    cout << "Client connected successfully!\n";
-
-    char buffer[1024] = {0};
-
-    int bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-    if (bytes_received > 0) {
-        cout << "Client says: " << buffer << '\n';
-    }
-
-    string response = "Hello from DistFS server!";
-
-    send(client_fd, response.c_str(), response.size(), 0);
-    cout << "Response sent to client!\n";
     return 0;
 }
