@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "../common/network_utils.hpp"
 using namespace std;
 
 int main() {
@@ -24,16 +25,20 @@ int main() {
     }
     cout << "Connected to DistFS server!\n";
     string message = "Hello from DistFS client!";
-
-    send(client_fd, message.c_str(), message.size(), 0);
+    if (!sendMessage(client_fd, message)) {
+        cerr << "Failed to send message\n";
+        close(client_fd);
+        return 1;
+    }
 
     cout << "Message sent to server!\n";
 
-    char buffer[1024] = {0};
+    string response;
 
-    int bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-    if (bytes_received > 0) {
-        cout << "Server says: " << buffer << '\n';
+    if (recvMessage(client_fd, response)) {
+        cout << "Server says: " << response << '\n';
+    } else {
+        cerr << "Failed to receive response\n";
     }
 
     close(client_fd);

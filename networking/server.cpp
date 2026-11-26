@@ -4,21 +4,25 @@
 #include <netinet/in.h>
 #include<unistd.h>
 #include<thread>
+#include "../common/network_utils.hpp"
 
 using namespace std;
 
 void handleClient(int client_fd) {
     cout << "Client connected successfully!\n";
-    char buffer[1024] = {0};
-    int bytes_received = recv(client_fd, buffer,sizeof(buffer) - 1, 0);
-    if (bytes_received > 0) {
-        cout << "Client says: " << buffer << '\n';
+    string message;
+    if (!recvMessage(client_fd, message)) {
+        cerr << "Failed to receive message from client\n";
+        close(client_fd);
+        return;
     }
+    cout << "Client says: " << message << '\n';
 
     string response = "Hello this is Distributed File System, you are connected";
-    send(client_fd, response.c_str(), response.size(), 0);
-    cout << "Response sent to client!\n";
 
+    if (!sendMessage(client_fd, response)) {
+        cerr << "Failed to send response\n";
+    }
     close(client_fd);
 }
 
@@ -58,9 +62,6 @@ int main() {
             cerr << "Accept failed: " << strerror(errno) << '\n';
             continue;
         }
-
-        cout << "Client connected successfully!\n";
-
         thread t(handleClient, client_fd);
         t.detach();
     }
